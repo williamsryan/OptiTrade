@@ -1,6 +1,6 @@
 # OptiTrade - Ultra-Low-Latency Crypto Options Trading System
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Build Status](https://github.com/williamsryan/OptiTrade/actions/workflows/cmake-single-platform.yml/badge.svg)
 ![C++](https://img.shields.io/badge/language-C++23-blue)
 ![Rust](https://img.shields.io/badge/migration-Rust-orange)
 ![License](https://img.shields.io/badge/license-GPLv3-blue)
