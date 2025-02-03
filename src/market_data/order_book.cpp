@@ -1,23 +1,5 @@
 #include "market_data/order_book.h"
-
-void OrderBook::updateOrderBook(const std::string &side, double price,
-                                double size) {
-  std::lock_guard<std::mutex> lock(book_mutex);
-
-  if (side == "buy") {
-    if (size > 0) {
-      bids[price] = size;
-    } else {
-      bids.erase(price);
-    }
-  } else if (side == "sell") {
-    if (size > 0) {
-      asks[price] = size;
-    } else {
-      asks.erase(price);
-    }
-  }
-}
+#include <iostream>
 
 void OrderBook::printOrderBook() {
   std::lock_guard<std::mutex> lock(book_mutex);
