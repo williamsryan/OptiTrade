@@ -29,7 +29,7 @@ void MarketDataHandler::connect(const std::string &uri) {
   }
 
   ws_client.connect(con);
-  exchange_url = uri; 
+  exchange_url = uri;
 }
 
 void MarketDataHandler::onMessage(
@@ -39,6 +39,13 @@ void MarketDataHandler::onMessage(
 }
 
 void MarketDataHandler::run() {
-  std::thread io_thread([this]() { io_context.run(); });
-  io_thread.detach();
+  std::cout << "Starting WebSocket event loop..." << std::endl;
+
+  std::thread io_thread([this]() {
+    std::cout << "Thread running io_context.run()" << std::endl;
+    io_context.run();
+    std::cout << "io_context.run() has exited!" << std::endl;
+  });
+
+  io_thread.detach(); // Detach so it runs independently
 }

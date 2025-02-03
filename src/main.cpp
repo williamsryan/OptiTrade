@@ -6,7 +6,8 @@ int main() {
 
   MarketDataHandler marketData;
   marketData.connect(
-      "wss://www.deribit.com/ws/api/v2"); // Deribit WebSocket API
+      "ws://test.deribit.com/ws/api/v1/"); // Deribit WebSocket API
+                                            // (wss://www.deribit.com/ws/api/v1/)
 
   std::thread data_thread(&MarketDataHandler::run, &marketData);
   data_thread.join(); // Run market data handler
