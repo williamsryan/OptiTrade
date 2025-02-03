@@ -1,13 +1,14 @@
 #ifndef MARKET_DATA_HANDLER_H
 #define MARKET_DATA_HANDLER_H
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/strand.hpp>
 #include <iostream>
+#include <memory>
 #include <string>
-#include <thread>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
-
-using websocketpp::connection_hdl;
 
 class MarketDataHandler {
 public:
@@ -20,6 +21,10 @@ public:
 
 private:
   websocketpp::client<websocketpp::config::asio_client> ws_client;
+  boost::asio::io_context io_context;
+  boost::asio::steady_timer timer;
+  std::shared_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>
+      strand;
   std::string exchange_url;
 };
 
