@@ -2,7 +2,7 @@ use futures_util::stream::StreamExt;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
 use serde_json::Value;
-use std::collections::VecDeque;
+// use std::collections::VecDeque;
 use std::time::Duration;
 use tokio_postgres::{Client, Error, NoTls};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -66,7 +66,7 @@ impl OrderBookImbalance {
     }
 }
 
-async fn connect_db() -> Result<Client, Error> {
+pub async fn connect_db() -> Result<Client, Error> {
     let (client, connection) = tokio_postgres::connect(
         "host=localhost user=optitrade password=secret dbname=market_data",
         NoTls,
@@ -96,7 +96,7 @@ async fn connect_db() -> Result<Client, Error> {
     Ok(client)
 }
 
-async fn insert_order_book_data(
+pub async fn insert_order_book_data(
     client: &Client,
     best_bid: f64,
     best_ask: f64,
@@ -171,8 +171,9 @@ pub async fn run_market_data_agent(producer: FutureProducer, db_client: &Client)
                     insert_order_book_data(db_client, bids[0].0, asks[0].0, vwap, imbalance).await;
 
                     // ✅ Publish to Kafka
+                    let json_payload = serde_json::to_string(&json_msg).unwrap();
                     let record = FutureRecord::to(KAFKA_TOPIC)
-                        .payload(&serde_json::to_string(&json_msg).unwrap())
+                        .payload(&json_payload)
                         .key("order_book");
 
                     let timeout = Timeout::from(Duration::from_secs(5));

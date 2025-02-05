@@ -1,6 +1,4 @@
-mod lib; // Import functions from lib.rs
-
-use lib::{connect_db, insert_order_book_data, run_market_data_agent};
+use market_data::{connect_db, run_market_data_agent};
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::FutureProducer;
 use tokio;
