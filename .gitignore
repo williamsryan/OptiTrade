@@ -1,39 +1,61 @@
-# Prerequisites
-*.d
+# Rust build artifacts
+/target/
+**/target/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Dependencies
+Cargo.lock
+/.cargo/
+/.cargo/
+/vendor/
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
+# Binaries
+*.rs.bk
+*.dSYM/
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
 *.exe
+
+# Debugging files
+*.log
+debug.log
+error.log
+*.profdata
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.iml
+
+# Rust Analyzer & Clippy caches
+rust-analyzer
+clippy.toml
+
+# Generated files
+*.rmeta
+*.rlib
+
+# Docker & Deployment
+docker-compose.override.yml
+*.env
+.envrc
+.env.local
+
+# Logs
+logs/
+*.log
 *.out
-*.app
+*.err
 
-[bB]uild
+# Test & Benchmarking Output
+/tests/target/
+/benches/target/
+/examples/target/
+/xtask/target/
+test-results/
 
-
-# Added by cargo
-
-/target
+# Git-specific
+*.swp
+*.swo
+*.swn
+*~
