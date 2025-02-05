@@ -1,18 +1,29 @@
-use futures_util::StreamExt;
-use market_data::run_market_data_agent;
+mod lib; // Import functions from lib.rs
+
+use lib::{connect_db, insert_order_book_data, run_market_data_agent};
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::FutureProducer;
 use tokio;
 
 #[tokio::main]
 async fn main() {
+    println!("[MarketData] Starting Market Data Agent...");
+
+    // ✅ Step 1: Connect to the database
+    let db_client = connect_db().await.expect("Failed to connect to database");
+
+    // ✅ Step 2: Set up Kafka producer
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", "localhost:9092")
-        .set("message.timeout.ms", "5000")
         .create()
         .expect("Failed to create Kafka producer");
 
-    println!("[MarketData] Connected to Kafka broker.");
+    // ✅ Step 3: Run the Market Data Agent with database insertion
+    tokio::spawn(async move {
+        run_market_data_agent(producer, &db_client).await;
+    });
 
-    run_market_data_agent(producer).await;
+    loop {
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+    }
 }
