@@ -32,3 +32,8 @@
 *.app
 
 [bB]uild
+
+
+# Added by cargo
+
+/target
