@@ -62,6 +62,11 @@ OptiTrade/
 │   │   │   ├── dashboard.rs         # Serves analytics dashboard data
 │   │   │   ├── indicators.rs        # Computes technical indicators
 │   │   ├── Cargo.toml
+│   ├── src/                         # Shared library for backend services
+│   │   ├── lib.rs                    # Shared module (schema, utilities)
+│   │   ├── market_data_generated.rs  # FlatBuffers-generated Rust bindings
+│   │   ├── schema.fbs                # FlatBuffers schema definition
+│   ├── Cargo.toml
 ├── frontend/                        # Web-based UI built with Rust/WASM
 │   ├── src/
 │   │   ├── main.rs                  # WebAssembly UI entry point
@@ -78,39 +83,6 @@ OptiTrade/
 │   │   ├── monitoring/              # Grafana/Prometheus setup
 ├── Cargo.toml
 ├── README.md
----
-
-## **🔥 Distributed System Components & Roles**
-
-### **📡 Market Data Agent**
-- **Purpose:** Connects to exchange WebSockets, processes market data (order books, trades).
-- **Tech:** Rust, `tokio-tungstenite`, `serde_json`.
-- **Output:** Publishes processed market data to **NATS/Kafka**.
-
-### **🚀 Execution Agent**
-- **Purpose:** Handles low-latency order execution, receives trade signals from Strategy Agent.
-- **Tech:** Axum, `reqwest`, REST/WebSockets.
-- **Output:** Places trades, publishes execution reports.
-
-### **🧠 Strategy Agent (AI/Algorithmic Bots)**
-- **Purpose:** Runs AI-driven and rule-based trading strategies, sends execution signals.
-- **Tech:** `tch-rs` (Torch for Rust), `ndarray`, Reinforcement Learning (RL).
-
-### **⚠️ Risk Management Agent**
-- **Purpose:** Monitors trade exposure, position sizing, and enforces risk limits.
-- **Tech:** `sqlx` (PostgreSQL), `rust_decimal`, real-time monitoring.
-
-### **📊 Leptos WebAssembly UI**
-- **Purpose:** Interactive UI for trade execution, monitoring, strategy configuration.
-- **Tech:** Leptos, WebAssembly (Wasm), WebSockets for live updates.
-
----
-
-## **🔧 Installation & Setup**
-### **1. Clone the Repository**
-```bash
-git clone git@github.com:williamsryan/OptiTrade.git
-cd OptiTrade
 ```
 
 ### **2. Build & Run Backend Services**
@@ -159,6 +131,30 @@ async fn place_order(exchange: &str, instrument: &str, size: f64, price: f64) ->
 ```
 
 ---
+
+## **🔥 Distributed System Components & Roles**
+
+### **📡 Market Data Agent**
+- **Purpose:** Connects to exchange WebSockets, processes market data (order books, trades).
+- **Tech:** Rust, `tokio-tungstenite`, `serde_json`.
+- **Output:** Publishes processed market data to **NATS/Kafka**.
+
+### **🚀 Execution Agent**
+- **Purpose:** Handles low-latency order execution, receives trade signals from Strategy Agent.
+- **Tech:** Axum, `reqwest`, REST/WebSockets.
+- **Output:** Places trades, publishes execution reports.
+
+### **🧠 Strategy Agent (AI/Algorithmic Bots)**
+- **Purpose:** Runs AI-driven and rule-based trading strategies, sends execution signals.
+- **Tech:** `tch-rs` (Torch for Rust), `ndarray`, Reinforcement Learning (RL).
+
+### **⚠️ Risk Management Agent**
+- **Purpose:** Monitors trade exposure, position sizing, and enforces risk limits.
+- **Tech:** `sqlx` (PostgreSQL), `rust_decimal`, real-time monitoring.
+
+### **📊 Leptos WebAssembly UI**
+- **Purpose:** Interactive UI for trade execution, monitoring, strategy configuration.
+- **Tech:** Leptos, WebAssembly (Wasm), WebSockets for live updates.
 
 ## **🚀 Roadmap**
 | Feature | Status |
