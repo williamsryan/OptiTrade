@@ -22,30 +22,62 @@
 ## 📂 Project Structure
 ```
 OptiTrade/
-│── backend/                   # Backend services
-│   ├── market_data/           # Market data ingestion nodes (WebSockets, order books)
-│   ├── execution/             # Order execution agents (API trading logic)
-│   ├── strategies/            # Trading strategy AI/algorithmic bots
-│   ├── risk_management/       # Risk monitoring and exposure control
-│   ├── api/                   # REST/WebSocket API (Axum-based)
-│── frontend/                  # WebAssembly-based UI (Leptos)
-│   ├── components/            # UI elements for real-time analytics
-│   ├── pages/                 # Dashboard pages for strategy execution
-│   ├── api/                   # UI-side API calls to backend
-│── common/                    # Shared data structures & utilities
-│   ├── models/                # Order books, trade executions, risk structures
-│   ├── utils/                 # Common functions (parsing, math ops)
-│── infra/                     # Infrastructure & deployment files
-│   ├── db/                    # PostgreSQL database migrations
-│   ├── messaging/             # NATS/Kafka event streaming setup
-│── scripts/                   # Deployment & performance benchmarking scripts
-│── tests/                     # Integration and unit tests
-│── logs/                      # Execution logs for debugging
-│── .gitignore                 # Ignored files
-│── Cargo.toml                 # Rust dependencies
-│── README.md                  # Documentation
-```
-
+├── backend/                        # Core backend for agents
+│   ├── market_data/                # Market Data Agent (WebSocket ingestion)
+│   │   ├── src/
+│   │   │   ├── main.rs              # Market Data Agent entry point
+│   │   │   ├── lib.rs               # Handles WebSocket & Kafka publishing
+│   │   │   ├── websocket.rs         # Handles WebSocket connections
+│   │   │   ├── kafka_producer.rs    # Sends messages to Kafka
+│   │   │   ├── data_parser.rs       # Parses incoming market data
+│   │   ├── Cargo.toml
+│   ├── storage_agent/               # Stores market data into TimescaleDB
+│   │   ├── src/
+│   │   │   ├── main.rs              # Storage Agent entry point
+│   │   │   ├── lib.rs               # Kafka consumer & database writer
+│   │   │   ├── kafka_consumer.rs    # Reads market data from Kafka
+│   │   │   ├── db_writer.rs         # Inserts processed data into TimescaleDB
+│   │   ├── init_db.sql              # SQL schema for TimescaleDB
+│   │   ├── Cargo.toml
+│   ├── backtesting/                 # Runs historical strategy simulations
+│   │   ├── src/
+│   │   │   ├── main.rs              # Backtesting Engine entry point
+│   │   │   ├── lib.rs               # Core strategy simulation logic
+│   │   │   ├── strategy.rs          # Trading strategies implementation
+│   │   │   ├── data_loader.rs       # Loads historical data from TimescaleDB
+│   │   │   ├── risk_management.rs   # Enforces risk controls
+│   │   ├── Cargo.toml
+│   ├── execution_agent/             # Executes trades via Alpaca API
+│   │   ├── src/
+│   │   │   ├── main.rs              # Execution Agent entry point
+│   │   │   ├── lib.rs               # Handles trade execution logic
+│   │   │   ├── kafka_consumer.rs    # Listens for trading signals
+│   │   │   ├── order_executor.rs    # Places orders via Alpaca API
+│   │   │   ├── risk_checker.rs      # Ensures position & risk limits
+│   │   ├── Cargo.toml
+│   ├── analytics/                   # Computes & serves trading analytics
+│   │   ├── src/
+│   │   │   ├── main.rs              # Analytics Engine entry point
+│   │   │   ├── lib.rs               # Core analytics logic
+│   │   │   ├── dashboard.rs         # Serves analytics dashboard data
+│   │   │   ├── indicators.rs        # Computes technical indicators
+│   │   ├── Cargo.toml
+├── frontend/                        # Web-based UI built with Rust/WASM
+│   ├── src/
+│   │   ├── main.rs                  # WebAssembly UI entry point
+│   │   ├── components/               # UI components (Leptos/Yew)
+│   │   │   ├── market_view.rs        # Live market data visualization
+│   │   │   ├── trade_panel.rs        # Trade execution UI
+│   │   │   ├── analytics_view.rs     # Trading analytics dashboard
+│   ├── Cargo.toml
+├── infra/                           # Infrastructure & deployment config
+│   ├── messaging/
+│   │   ├── docker-compose.yml       # Kafka, Zookeeper, TimescaleDB services
+│   ├── deployment/
+│   │   ├── k8s-configs/             # Kubernetes deployment configs
+│   │   ├── monitoring/              # Grafana/Prometheus setup
+├── Cargo.toml
+├── README.md
 ---
 
 ## **🔥 Distributed System Components & Roles**

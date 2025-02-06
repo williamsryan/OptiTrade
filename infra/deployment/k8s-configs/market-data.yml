@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: market-data-agent
+  template:
+    metadata:
+      labels:
+        app: market-data-agent
+    spec:
+      containers:
+        - name: market-data-agent
+          image: optitrade/market-data:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KAFKA_BROKER
+              value: "kafka:9092"
+            - name: ALPACA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: alpaca-secrets
+                  key: api_key

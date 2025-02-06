@@ -1,0 +1,7 @@
+scrape_configs:
+  - job_name: 'market-data-agent'
+    static_configs:
+      - targets: ['market-data-agent:8080']
+  - job_name: 'execution-agent'
+    static_configs:
+      - targets: ['execution-agent:8080']
