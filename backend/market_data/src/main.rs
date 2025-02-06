@@ -36,6 +36,8 @@ async fn main() {
             let text = text.clone();
             let mmap = Arc::clone(&mmap);
 
+            // println!("[MarketData] 📊 Received market data: {}", text);
+
             tokio::spawn(async move {
                 process_market_data(&text, mmap).await;
             });
@@ -78,27 +80,31 @@ fn setup_mmap_buffer() -> MmapMut {
     unsafe { MmapMut::map_mut(&file).expect("Failed to map memory") }
 }
 
-/// Processes market data and sends it to Kafka and memory-mapped buffer.
+/// Processes an array of market data and writes it to memory-mapped buffer & Kafka.
 async fn process_market_data(text: &str, mmap: Arc<Mutex<MmapMut>>) {
-    if let Ok(json_msg) = serde_json::from_str::<Value>(text) {
-        let symbol = json_msg["symbol"].as_str().unwrap_or("UNKNOWN");
-        let bid_price = json_msg["bp"].as_f64().unwrap_or(0.0);
-        let ask_price = json_msg["ap"].as_f64().unwrap_or(0.0);
-        let timestamp = json_msg["t"].as_u64().unwrap_or(0);
+    if let Ok(json_array) = serde_json::from_str::<Vec<Value>>(text) {
+        for json_msg in json_array {
+            let json_str = json_msg.to_string(); // ✅ Convert full JSON object to string
 
-        // ✅ Write to Memory-Mapped Buffer
-        {
-            let mut mmap = mmap.lock().unwrap();
-            let data = text.as_bytes();
-            let len = data.len().min(mmap.len());
+            // ✅ Write to Memory-Mapped Buffer (FlatBuffers)
+            {
+                let mut mmap = mmap.lock().unwrap();
+                let data = json_str.as_bytes();
+                let len = data.len().min(mmap.len());
 
-            mmap[..len].copy_from_slice(&data[..len]);
-            mmap.flush().expect("Failed to flush mmap data");
+                mmap[..len].copy_from_slice(&data[..len]);
+                mmap.flush().expect("Failed to flush mmap data");
 
-            println!("[MarketData] ✅ Data written to mmap.");
+                println!("[MarketData] ✅ Data written to mmap.");
+            }
+
+            // ✅ Publish full JSON object to Kafka
+            publish_to_kafka(KAFKA_TOPIC, &json_str).await;
         }
-
-        // ✅ Publish to Kafka
-        publish_to_kafka(KAFKA_TOPIC, symbol, bid_price, ask_price, timestamp).await;
+    } else {
+        eprintln!(
+            "[MarketData] ❌ Failed to parse WebSocket message as JSON array: {}",
+            text
+        );
     }
 }
