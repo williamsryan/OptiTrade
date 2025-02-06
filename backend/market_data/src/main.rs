@@ -100,7 +100,7 @@ fn setup_mmap_buffer() -> MmapMut {
 async fn process_market_data(text: &str, producer: Arc<FutureProducer>, mmap: Arc<Mutex<MmapMut>>) {
     // Parse JSON
     if let Ok(json_msg) = serde_json::from_str::<Value>(text) {
-        println!("[MarketData] New Event: {:?}", json_msg);
+        // println!("[MarketData] New Event: {:?}", json_msg);
 
         // Step 1: Publish to Kafka**
         let key = json_msg["symbol"].as_str().unwrap_or("unknown");

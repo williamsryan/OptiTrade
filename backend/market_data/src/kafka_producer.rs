@@ -2,7 +2,21 @@ use backend::market_data_generated::MarketData::{MarketEvent, MarketEventArgs, Q
 use flatbuffers::FlatBufferBuilder;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::util::Timeout;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
+
+lazy_static::lazy_static! {
+    static ref PRODUCER: Arc<FutureProducer> = Arc::new(
+        ClientConfig::new()
+            .set("bootstrap.servers", "localhost:9092")
+            .set("message.timeout.ms", "5000") // Ensure messages don’t time out too fast
+            .set("queue.buffering.max.ms", "1") // Reduce latency by sending immediately
+            .create()
+            .expect("Failed to create Kafka producer")
+    );
+}
 
 pub async fn publish_to_kafka(
     topic: &str,
@@ -11,10 +25,7 @@ pub async fn publish_to_kafka(
     ask_price: f64,
     timestamp: u64,
 ) {
-    let producer: FutureProducer = ClientConfig::new()
-        .set("bootstrap.servers", "localhost:9092")
-        .create()
-        .expect("Failed to create Kafka producer");
+    let producer = Arc::clone(&PRODUCER);
 
     let mut builder = FlatBufferBuilder::new();
 
@@ -43,9 +54,17 @@ pub async fn publish_to_kafka(
 
     let flatbuffer_data = builder.finished_data();
 
-    let record = FutureRecord::to(topic)
-        .payload(flatbuffer_data)
-        .key("market_event");
+    let record = FutureRecord::to(topic).payload(flatbuffer_data).key(symbol);
 
-    let _ = producer.send(record, Duration::from_secs(5)).await;
+    match producer
+        .send(record, Timeout::After(Duration::from_secs(3)))
+        .await
+    {
+        Ok(_) => {
+            println!("[Kafka] Successfully published event for {}", symbol);
+        }
+        Err((e, _)) => {
+            eprintln!("[Kafka ERROR] Failed to send message: {:?}", e);
+        }
+    }
 }
