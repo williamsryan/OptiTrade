@@ -44,6 +44,7 @@ futures-util = "0.3"
 flatbuffers = "25.1.24"
 url = "2.3"
 memmap2 = "0.9"
+lazy_static = "1.4"
 
 [dependencies]
 tokio = { workspace = true }
@@ -57,3 +58,4 @@ futures-util = { workspace = true }
 flatbuffers = { workspace = true }
 url = { workspace = true }
 memmap2 = { workspace = true }
+lazy_static = { workspace = true }

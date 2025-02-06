@@ -1,12 +1,11 @@
+mod kafka_producer;
+use kafka_producer::publish_to_kafka;
+
 use futures_util::{SinkExt, StreamExt};
 use memmap2::MmapMut;
-use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::ClientConfig;
 use serde_json::Value;
-// use std::fs::{File, OpenOptions};
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
 
@@ -19,10 +18,6 @@ const MMAP_SIZE: usize = 10 * 1024 * 1024; // 10MB buffer for market data
 
 #[tokio::main]
 async fn main() {
-    // Set up Kafka Producer
-    let producer = Arc::new(setup_kafka_producer());
-
-    // Set up memory-mapped file
     let mmap = Arc::new(Mutex::new(setup_mmap_buffer()));
 
     let url = Url::parse(ALPACA_WS_URL).expect("Invalid WebSocket URL");
@@ -32,53 +27,40 @@ async fn main() {
 
     let (mut write, mut read) = ws_stream.split();
 
-    // Authenticate
-    let auth_msg = format!(
-        r#"{{"action": "auth", "key": "{}", "secret": "{}"}}"#,
-        API_KEY, SECRET_KEY
-    );
+    authenticate_and_subscribe(&mut write).await;
 
-    write
-        .send(Message::Text(auth_msg))
-        .await
-        .expect("Failed to send auth");
+    println!("[MarketData] ✅ Subscribed to Alpaca market feed.");
 
-    // Subscribe to data
-    let subscribe_msg =
-        r#"{"action":"subscribe","trades":["AAPL","TSLA"],"quotes":["AAPL","TSLA"]}"#;
-    write
-        .send(Message::Text(subscribe_msg.into()))
-        .await
-        .expect("Failed to subscribe");
-
-    println!("[MarketData] Subscribed to Alpaca market feed.");
-
-    // Process incoming messages
     while let Some(msg) = read.next().await {
-        match msg {
-            Ok(Message::Text(text)) => {
-                let text = text.clone(); // Clone to avoid async borrow issues
-                let producer = Arc::clone(&producer);
-                let mmap = Arc::clone(&mmap);
+        if let Ok(Message::Text(text)) = msg {
+            let text = text.clone();
+            let mmap = Arc::clone(&mmap);
 
-                // Spawn a task to handle Kafka + memory-mapped writing
-                tokio::spawn(async move {
-                    process_market_data(&text, producer, mmap).await;
-                });
-            }
-            Err(e) => eprintln!("[MarketData] WebSocket Error: {:?}", e),
-            _ => {}
+            tokio::spawn(async move {
+                process_market_data(&text, mmap).await;
+            });
         }
     }
 }
 
-/// Sets up Kafka producer for publishing market data.
-fn setup_kafka_producer() -> FutureProducer {
-    ClientConfig::new()
-        .set("bootstrap.servers", "localhost:9092")
-        .set("message.timeout.ms", "5000")
-        .create()
-        .expect("Failed to create Kafka producer")
+async fn authenticate_and_subscribe<S>(write: &mut S)
+where
+    S: SinkExt<Message> + Unpin,
+    <S as futures_util::Sink<Message>>::Error: std::fmt::Debug,
+{
+    let auth_msg = format!(
+        r#"{{"action": "auth", "key": "{}", "secret": "{}"}}"#,
+        API_KEY, SECRET_KEY
+    );
+    if let Err(e) = write.send(Message::Text(auth_msg)).await {
+        eprintln!("[MarketData] ❌ Auth failed: {:?}", e);
+    }
+
+    let subscribe_msg =
+        r#"{"action":"subscribe","trades":["AAPL","TSLA"],"quotes":["AAPL","TSLA"]}"#;
+    if let Err(e) = write.send(Message::Text(subscribe_msg.into())).await {
+        eprintln!("[MarketData] ❌ Subscribe failed: {:?}", e);
+    }
 }
 
 /// Sets up a memory-mapped buffer for ultra-fast market data access.
@@ -97,29 +79,26 @@ fn setup_mmap_buffer() -> MmapMut {
 }
 
 /// Processes market data and sends it to Kafka and memory-mapped buffer.
-async fn process_market_data(text: &str, producer: Arc<FutureProducer>, mmap: Arc<Mutex<MmapMut>>) {
-    // Parse JSON
+async fn process_market_data(text: &str, mmap: Arc<Mutex<MmapMut>>) {
     if let Ok(json_msg) = serde_json::from_str::<Value>(text) {
-        // println!("[MarketData] New Event: {:?}", json_msg);
+        let symbol = json_msg["symbol"].as_str().unwrap_or("UNKNOWN");
+        let bid_price = json_msg["bp"].as_f64().unwrap_or(0.0);
+        let ask_price = json_msg["ap"].as_f64().unwrap_or(0.0);
+        let timestamp = json_msg["t"].as_u64().unwrap_or(0);
 
-        // Step 1: Publish to Kafka**
-        let key = json_msg["symbol"].as_str().unwrap_or("unknown");
-        let record = FutureRecord::to(KAFKA_TOPIC).key(key).payload(text);
-
-        let _ = producer
-            .send(record, Duration::from_secs(0))
-            .await
-            .map_err(|e| eprintln!("[MarketData] Kafka error: {:?}", e));
-
-        // Step 2: Write to Memory-Mapped Buffer**
-        if let Ok(mut mmap) = mmap.lock() {
+        // ✅ Write to Memory-Mapped Buffer
+        {
+            let mut mmap = mmap.lock().unwrap();
             let data = text.as_bytes();
-            let len = data.len().min(MMAP_SIZE); // Ensure it fits in buffer
+            let len = data.len().min(mmap.len());
 
             mmap[..len].copy_from_slice(&data[..len]);
             mmap.flush().expect("Failed to flush mmap data");
 
-            println!("[MarketData] Data written to memory-mapped buffer.");
+            println!("[MarketData] ✅ Data written to mmap.");
         }
+
+        // ✅ Publish to Kafka
+        publish_to_kafka(KAFKA_TOPIC, symbol, bid_price, ask_price, timestamp).await;
     }
 }
