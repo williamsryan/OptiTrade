@@ -1,6 +1,6 @@
 use crate::db_writer::store_market_data;
 use backend::market_data_generated::market_data::root_as_market_event;
-use flatbuffers::FlatBufferBuilder;
+// use flatbuffers::FlatBufferBuilder;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::Message;

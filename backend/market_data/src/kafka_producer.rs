@@ -1,8 +1,7 @@
+use backend::market_data_generated::MarketData::{MarketEvent, MarketEventArgs, Quote, QuoteArgs};
 use flatbuffers::FlatBufferBuilder;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-// use shared::market_data_generated::MarketData::{MarketEvent, MarketEventArgs, Quote, QuoteArgs};
-use backend::market_data_generated::MarketData::*;
 use std::time::Duration;
 
 pub async fn publish_to_kafka(

@@ -43,6 +43,7 @@ rdkafka = { version = "0.29", features = ["tokio"] }
 futures-util = "0.3"
 flatbuffers = "25.1.24"
 url = "2.3"
+memmap2 = "0.9"
 
 [dependencies]
 tokio = { workspace = true }
@@ -55,3 +56,4 @@ rdkafka = { workspace = true }
 futures-util = { workspace = true }
 flatbuffers = { workspace = true }
 url = { workspace = true }
+memmap2 = { workspace = true }
