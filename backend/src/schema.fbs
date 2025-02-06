@@ -1,0 +1,30 @@
+namespace MarketData;
+
+// table Quote {
+//   symbol: string;
+//   bid_price: float;
+//   ask_price: float;
+//   timestamp: ulong;
+// }
+
+table Quote {
+  symbol: string;
+  bid_price: double;
+  ask_price: double;
+  timestamp: ulong;
+}
+
+table Trade {
+  symbol: string;
+  price: float;
+  volume: int;
+  timestamp: ulong;
+}
+
+table MarketEvent {
+  event_type: string;
+  quote: Quote;
+  trade: Trade;
+}
+
+root_type MarketEvent;

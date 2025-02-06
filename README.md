@@ -1,11 +1,11 @@
-# OptiTrade - Modular Distributed Low-Latency Crypto Options Trading System
+# OptiTrade - Agentic Low-Latency Trading System
 
 ![Build Status](https://github.com/williamsryan/OptiTrade/actions/workflows/rust-build.yml/badge.svg)
 ![Rust](https://img.shields.io/badge/language-Rust-orange)
 ![License](https://img.shields.io/badge/license-GPLv3-blue)
 
 ## 📌 Overview
-**OptiTrade** is a **modular, distributed trading system** for **crypto options**, built using **a full Rust stack**. The system is designed to handle **real-time market data ingestion, execution, risk management, and AI-driven trading strategies** with **low-latency distributed processing**.
+**OptiTrade** is a **modular, distributed trading system**, built using **a full Rust stack**. The system is designed to handle **real-time market data ingestion, execution, risk management, and AI-driven trading strategies** with **low-latency distributed processing**.
 
 ## 🚀 Features
 ✅ **Distributed Market Data Processing**: Multiple nodes for WebSocket streaming from **Binance, Deribit, OKX**  

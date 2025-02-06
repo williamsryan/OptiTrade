@@ -3,4 +3,55 @@ name = "backend"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    "market_data",
+    "storage_agent",
+    "backtesting",
+    "execution_agent",
+    "analytics",
+]
+
+[[bin]]
+name = "market_data"
+path = "market_data/src/main.rs"
+
+[[bin]]
+name = "storage_agent"
+path = "storage_agent/src/main.rs"
+
+[[bin]]
+name = "backtesting"
+path = "backtesting/src/main.rs"
+
+[[bin]]
+name = "execution_agent"
+path = "execution_agent/src/main.rs"
+
+[[bin]]
+name = "analytics"
+path = "analytics/src/main.rs"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-postgres = "0.7"
+postgres-types = { version = "0.2", features = ["derive"] }
+tokio-tungstenite = { version = "*", features = ["tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
+rdkafka = { version = "0.29", features = ["tokio"] }
+futures-util = "0.3"
+flatbuffers = "25.1.24"
+url = "2.3"
+
 [dependencies]
+tokio = { workspace = true }
+tokio-postgres = { workspace = true }
+postgres-types = { workspace = true }
+tokio-tungstenite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rdkafka = { workspace = true }
+futures-util = { workspace = true }
+flatbuffers = { workspace = true }
+url = { workspace = true }
