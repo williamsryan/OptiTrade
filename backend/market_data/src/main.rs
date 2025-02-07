@@ -1,10 +1,8 @@
-use backend::shared::mmap_buffer::{write_to_mmap, get_mmap}; 
-use backend::shared::kafka_producer::publish_to_kafka; 
+use backend::shared::kafka_producer::publish_to_kafka;
+use backend::shared::mmap_buffer::write_to_mmap;
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
 
@@ -15,7 +13,7 @@ const KAFKA_TOPIC: &str = "market_data"; // Kafka topic for publishing data
 
 #[tokio::main]
 async fn main() {
-    let mmap = Arc::new(Mutex::new(get_mmap())); // Use shared mmap method
+    // let mmap = get_mmap(); // Use `get_mmap()` directly, no extra wrapping
 
     let url = Url::parse(ALPACA_WS_URL).expect("Invalid WebSocket URL");
     let (ws_stream, _) = connect_async(url)
@@ -31,10 +29,10 @@ async fn main() {
     while let Some(msg) = read.next().await {
         if let Ok(Message::Text(text)) = msg {
             let text = text.clone();
-            let mmap = Arc::clone(&mmap);
+            // let mmap = Arc::clone(&mmap);
 
             tokio::spawn(async move {
-                process_market_data(&text, mmap).await;
+                process_market_data(&text).await;
             });
         }
     }
@@ -61,15 +59,15 @@ where
 }
 
 /// Processes an array of market data and writes it to memory-mapped buffer & Kafka.
-async fn process_market_data(text: &str, mmap: Arc<Mutex<memmap2::MmapMut>>) {
+async fn process_market_data(text: &str) {
     if let Ok(json_array) = serde_json::from_str::<Vec<Value>>(text) {
         for json_msg in json_array {
             let json_str = json_msg.to_string();
 
-            // Write to Shared Memory-Mapped Buffer (FlatBuffers)
+            // Write to Shared Memory-Mapped Buffer (Await async function)
             {
-                let mut mmap = mmap.lock().await;
-                write_to_mmap(&json_str);
+                // let mmap_guard = mmap.lock().await;
+                write_to_mmap(&json_str).await;
                 println!("[MarketData] ✅ Data written to mmap.");
             }
 
