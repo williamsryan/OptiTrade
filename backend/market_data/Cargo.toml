@@ -4,3 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+tokio = { workspace = true }
+tokio-postgres = { workspace = true }
+postgres-types = { workspace = true }
+tokio-tungstenite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rdkafka = { workspace = true }
+futures-util = { workspace = true }
+flatbuffers = { workspace = true }
+url = { workspace = true }
+memmap2 = { workspace = true }
+lazy_static = { workspace = true }
