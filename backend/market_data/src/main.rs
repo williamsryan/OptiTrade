@@ -68,7 +68,7 @@ async fn process_market_data(text: &str) {
             {
                 // let mmap_guard = mmap.lock().await;
                 write_to_mmap(&json_str).await;
-                println!("[MarketData] ✅ Data written to mmap.");
+                // println!("[MarketData] ✅ Data written to mmap.");
             }
 
             // Publish full JSON object to Kafka

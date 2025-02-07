@@ -1,6 +1,5 @@
 use crate::db_writer::store_market_data;
-// use backend::shared::market_data_generated::market_data::root_as_market_event;
-// use flatbuffers::FlatBufferBuilder;
+use chrono::DateTime;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::Message;
@@ -8,7 +7,7 @@ use serde_json::Value;
 use tokio_postgres::Client;
 
 const KAFKA_TOPIC: &str = "market_data";
-const KAFKA_BROKER: &str = "localhost:9092";
+const KAFKA_BROKER: &str = "localhost:9093";
 
 pub async fn consume_kafka_messages(db_client: &Client) {
     let consumer: StreamConsumer = ClientConfig::new()
@@ -26,22 +25,38 @@ pub async fn consume_kafka_messages(db_client: &Client) {
         if let Some(payload) = message.payload() {
             let json_str = String::from_utf8_lossy(payload);
             if let Ok(parsed) = serde_json::from_str::<Value>(&json_str) {
-                if let (Some(symbol), Some(bid_price), Some(ask_price), Some(timestamp)) = (
+                if let (Some(symbol), Some(bid_price), Some(ask_price), Some(timestamp_str)) = (
                     parsed["S"].as_str(),
                     parsed["bp"].as_f64(),
                     parsed["ap"].as_f64(),
-                    parsed["t"].as_u64(),
+                    parsed["t"].as_str(),
                 ) {
-                    let last_price = parsed["last"].as_f64();
+                    // ✅ Convert timestamp string to Unix timestamp (seconds)
+                    let timestamp: u64 = DateTime::parse_from_rfc3339(timestamp_str)
+                        .map(|dt| dt.timestamp() as u64) // Convert `i64` → `u64`
+                        .unwrap_or_else(|_| {
+                            eprintln!(
+                                "[Kafka] ⚠️ Failed to parse timestamp: {}, using default 0",
+                                timestamp_str
+                            );
+                            0
+                        });
+
+                    let last_price = parsed["last"].as_f64().unwrap_or(0.0);
 
                     println!(
-                            "[Kafka] ✅ Received market data: Symbol: {}, Bid: {}, Ask: {}, Last: {:?}, Timestamp: {}",
-                            symbol, bid_price, ask_price, last_price, timestamp
-                        );
+                        "[Kafka] ✅ Received market data: Symbol: {}, Bid: {}, Ask: {}, Last: {:?}, Timestamp: {}",
+                        symbol, bid_price, ask_price, last_price, timestamp
+                    );
 
-                    // Insert into the database
+                    // ✅ Pass correctly converted timestamp
                     store_market_data(
-                        &db_client, symbol, bid_price, ask_price, last_price, timestamp,
+                        &db_client,
+                        symbol,
+                        bid_price,
+                        ask_price,
+                        Some(last_price),
+                        timestamp,
                     )
                     .await;
                 } else {

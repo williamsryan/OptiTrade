@@ -24,18 +24,18 @@ lazy_static! {
 pub async fn publish_to_kafka(topic: &str, json_message: &str) {
     let producer = Arc::clone(&PRODUCER);
 
-    // ✅ Convert JSON string to byte vector for Kafka
+    // Convert JSON string to byte vector for Kafka
     let json_bytes = json_message.as_bytes().to_vec();
 
-    // ✅ Ensure key is a `String`, as `&str` causes type inference issues
+    // Ensure key is a `String`, as `&str` causes type inference issues
     let key = String::from("market_data_key");
 
     let record = FutureRecord::<String, Vec<u8>>::to(topic)
-        .key(&key) // ✅ Explicitly pass a String reference
+        .key(&key)
         .payload(&json_bytes);
 
     match producer.send(record, Duration::from_secs(3)).await {
-        Ok(_) => println!("[Kafka] ✅ Published JSON event: {}", json_message),
+        Ok(_) => (),
         Err((e, _)) => eprintln!("[Kafka ERROR] ❌ Failed to send JSON message: {:?}", e),
     }
 
