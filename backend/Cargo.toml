@@ -7,26 +7,6 @@ edition = "2021"
 name = "backend"
 path = "src/lib.rs"
 
-[[bin]]
-name = "market_data"
-path = "market_data/src/main.rs"
-
-[[bin]]
-name = "storage_agent"
-path = "storage_agent/src/main.rs"
-
-[[bin]]
-name = "backtesting"
-path = "backtesting/src/main.rs"
-
-[[bin]]
-name = "execution_agent"
-path = "execution_agent/src/main.rs"
-
-[[bin]]
-name = "analytics"
-path = "analytics/src/main.rs"
-
 [dependencies]
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }

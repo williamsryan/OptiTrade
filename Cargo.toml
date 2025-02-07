@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "backend",
     "backend/market_data",
     "backend/storage_agent",
     "backend/backtesting",
