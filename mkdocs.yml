@@ -1,0 +1,27 @@
+site_name: OptiTrade Documentation
+site_url: https://github.com/williamsryan/optitrade
+
+site_author: Ryan Williams
+site_description: Agentic Low-Latency Trading System
+copyright: 'Copyright &copy; 2025 Ryan Williams'
+
+repo_name: williamsryan/OptiTrade
+repo_url: https://williamsryan.github.io/OptiTrade
+
+theme:
+  name: readthedocs # material
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Overview: getting_started.md
+      - Installation: installation.md
+  
+plugins:
+  - search
+  # - mkdocs-git-revision-date-plugin
+markdown_extensions:
+  - codehilite
+  - admonition
+  - toc
+
