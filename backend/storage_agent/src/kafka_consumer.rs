@@ -1,9 +1,10 @@
 use crate::db_writer::store_market_data;
-use backend::shared::market_data_generated::market_data::root_as_market_event;
+// use backend::shared::market_data_generated::market_data::root_as_market_event;
 // use flatbuffers::FlatBufferBuilder;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::Message;
+use serde_json::Value;
 use tokio_postgres::Client;
 
 const KAFKA_TOPIC: &str = "market_data";
@@ -23,18 +24,34 @@ pub async fn consume_kafka_messages(db_client: &Client) {
 
     while let Ok(message) = consumer.recv().await {
         if let Some(payload) = message.payload() {
-            let event = root_as_market_event(payload).expect("Invalid FlatBuffer: MarketEvent");
+            let json_str = String::from_utf8_lossy(payload);
+            if let Ok(parsed) = serde_json::from_str::<Value>(&json_str) {
+                if let (Some(symbol), Some(bid_price), Some(ask_price), Some(timestamp)) = (
+                    parsed["S"].as_str(),
+                    parsed["bp"].as_f64(),
+                    parsed["ap"].as_f64(),
+                    parsed["t"].as_u64(),
+                ) {
+                    let last_price = parsed["last"].as_f64();
 
-            if let Some(quote) = event.quote() {
-                store_market_data(
-                    db_client,
-                    quote.symbol().unwrap(),
-                    quote.bid_price(),
-                    quote.ask_price(),
-                    None, // No trade data for quotes
-                    quote.timestamp(),
-                )
-                .await;
+                    println!(
+                            "[Kafka] ✅ Received market data: Symbol: {}, Bid: {}, Ask: {}, Last: {:?}, Timestamp: {}",
+                            symbol, bid_price, ask_price, last_price, timestamp
+                        );
+
+                    // Insert into the database
+                    store_market_data(
+                        &db_client, symbol, bid_price, ask_price, last_price, timestamp,
+                    )
+                    .await;
+                } else {
+                    eprintln!(
+                        "[Kafka] ❌ Failed to parse required fields from message: {}",
+                        json_str
+                    );
+                }
+            } else {
+                eprintln!("[Kafka] ❌ Invalid JSON format: {}", json_str);
             }
         }
     }

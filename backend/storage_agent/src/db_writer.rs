@@ -2,7 +2,7 @@ use tokio_postgres::{Client, NoTls};
 
 pub async fn connect_db() -> Result<Client, tokio_postgres::Error> {
     let (client, connection) = tokio_postgres::connect(
-        "host=localhost user=optitrade password=secret dbname=market_data",
+        "host=localhost port=5433 user=optitrade password=secret dbname=market_data",
         NoTls,
     )
     .await?;
@@ -13,7 +13,27 @@ pub async fn connect_db() -> Result<Client, tokio_postgres::Error> {
         }
     });
 
+    // Ensure the table is created before inserting data
+    create_tables(&client).await?;
+
     Ok(client)
+}
+
+async fn create_tables(client: &Client) -> Result<(), tokio_postgres::Error> {
+    let stmt = "
+        CREATE TABLE IF NOT EXISTS market_data (
+            id SERIAL PRIMARY KEY,
+            symbol TEXT NOT NULL,
+            bid_price DOUBLE PRECISION NOT NULL,
+            ask_price DOUBLE PRECISION NOT NULL,
+            last_price DOUBLE PRECISION,
+            timestamp BIGINT NOT NULL
+        );
+    ";
+
+    client.execute(stmt, &[]).await?;
+    println!("[DB] ✅ Ensured table 'market_data' exists.");
+    Ok(())
 }
 
 pub async fn store_market_data(
@@ -40,5 +60,5 @@ pub async fn store_market_data(
             ],
         )
         .await
-        .expect("Failed to insert market data");
+        .expect("[DB] ❌ Failed to insert market data");
 }
