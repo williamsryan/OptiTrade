@@ -6,14 +6,14 @@ use alpaca_api::stream_alpaca_market_data;
 use backend::shared::kafka_producer::publish_to_kafka;
 use backend::shared::mmap_buffer::write_to_mmap;
 use config::load_config;
-// use ib_api::fetch_ib_market_data;
+use ib_api::IBMarketData;
 use serde_json::Value;
-// use std::sync::Arc;
-// use std::thread;
+use std::sync::Arc;
+use std::thread;
 use tokio::sync::mpsc;
 
 const KAFKA_TOPIC: &str = "market_data"; // Kafka topic for publishing data
-const SYMBOLS: [&str; 3] = ["AAPL", "TSLA", "NVDA"]; // Modify for dynamic symbols
+const SYMBOLS: [&str; 3] = ["AAPL", "TSLA", "NVDA"]; 
 
 #[tokio::main]
 async fn main() {
@@ -40,32 +40,33 @@ async fn main() {
                 });
             }
         }
-        // "ib" => {
-        //     println!("[MarketData] 🔵 Using Interactive Brokers API for market data streaming");
+        "ib" => {
+            println!("[MarketData] 🔵 Using Interactive Brokers API for market data streaming");
 
-        //     let ib_config = Arc::new(config.ib.clone());
-        //     let mut handles = vec![];
+            let ib_market_data = Arc::new(IBMarketData::new(config.ib.clone()));
 
-        //     for symbol in SYMBOLS {
-        //         let ib_config = Arc::clone(&ib_config);
-        //         let handle =
-        //             thread::spawn(move || match fetch_ib_market_data(&ib_config, symbol) {
-        //                 Ok(_) => println!("[IB] ✅ Streaming market data for {}", symbol),
-        //                 Err(err) => eprintln!("[IB] ❌ Error fetching IB market data: {}", err),
-        //             });
-        //         handles.push(handle);
-        //     }
+            // ✅ Stream Market Data
+            let symbols = SYMBOLS.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+            let ib_clone = Arc::clone(&ib_market_data);
+            let tx_clone = tx.clone();
+            thread::spawn(move || {
+                ib_clone.stream_market_data(symbols, tx_clone);
+            });
 
-        //     for handle in handles {
-        //         handle.join().unwrap();
-        //     }
-        // }
+            // ✅ Fetch Options Chain Data
+            let options_symbol = "AAPL".to_string();
+            let ib_clone = Arc::clone(&ib_market_data);
+            let tx_clone = tx.clone();
+            thread::spawn(move || {
+                ib_clone.fetch_options_chain(options_symbol, tx_clone);
+            });
+        }
         _ => {
             eprintln!("[MarketData] ❌ Invalid data provider in config");
         }
     }
 
-    // ✅ Process incoming WebSocket messages
+    // Process incoming WebSocket messages
     while let Some(text) = rx.recv().await {
         process_market_data(&text).await;
     }
@@ -77,10 +78,10 @@ async fn process_market_data(text: &str) {
         for json_msg in json_array {
             let json_str = json_msg.to_string();
 
-            // ✅ Write to Shared Memory-Mapped Buffer
+            // Write to Shared Memory-Mapped Buffer
             write_to_mmap(&json_str);
 
-            // ✅ Publish full JSON object to Kafka
+            // Publish full JSON object to Kafka
             publish_to_kafka(KAFKA_TOPIC, &json_str).await;
         }
     } else {

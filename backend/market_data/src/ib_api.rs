@@ -1,84 +1,81 @@
-// use crate::config::IbConfig;
-// use ibapi::contracts::Contract;
-// use ibapi::market_data::realtime::{BarSize, WhatToShow};
-// use ibapi::messages::IncomingMessages;
-// use ibapi::Client;
-// use std::sync::Arc;
-// use tokio::sync::mpsc;
-// use tokio::task;
-// use tokio::time::{sleep, Duration};
+use crate::config::IbConfig;
+use ibapi::contracts::Contract;
+use ibapi::market_data::realtime::{BarSize, WhatToShow};
+use ibapi::client::Client;
+use std::sync::Arc;
+use std::thread;
+use tokio::sync::mpsc;
 
-// /// Connects to IB and fetches real-time market data (async, thread-safe)
-// pub async fn fetch_ib_market_data(
-//     config: &IbConfig,
-//     symbols: Vec<&str>,
-//     sender: mpsc::Sender<String>,
-// ) -> Result<(), Box<dyn std::error::Error>> {
-//     println!(
-//         "[IB] 🔵 Connecting to IB Gateway at {}:{}...",
-//         config.host, config.port
-//     );
+pub struct IBMarketData {
+    config: IbConfig,
+}
 
-//     let connection_string = format!("{}:{}", config.host, config.port);
+impl IBMarketData {
+    pub fn new(config: IbConfig) -> Arc<Self> {
+        println!("[IB] 🔵 Initializing IB Market Data Agent...");
+        Arc::new(Self { config })
+    }
 
-//     // Correct Client Instantiation
-//     let client = Client::connect(&connection_string, config.client_id).expect("connection failed");
+    /// Fetch real-time stock market data (borrows `self`)
+    pub fn stream_market_data(&self, symbols: Vec<String>, sender: mpsc::Sender<String>) {
+        let mut handles = vec![];
 
-//     // Start the event loop for receiving messages
-//     task::spawn({
-//         let mut client = client.clone();
-//         async move {
-//             if let Err(err) = client.run().await {
-//                 eprintln!("[IB] ❌ Error in client event loop: {:?}", err);
-//             }
-//         }
-//     });
+        for symbol in symbols {
+            let config = self.config.clone();
+            let sender = sender.clone();
 
-//     println!("[IB] ✅ Connected to Interactive Brokers!");
+            let handle = thread::spawn(move || {
+                let connection_url = format!("{}:{}", config.host, config.port);
+                let client = Client::connect(&connection_url, config.client_id as i32)
+                    .expect("Connection to IB Gateway/TWS failed!");
 
-//     // Subscribe to market data for each symbol
-//     for symbol in symbols {
-//         let mut client = client.clone();
-//         let sender = sender.clone();
+                let contract = Contract::stock(&symbol);
+                let subscription = client
+                    .realtime_bars(&contract, BarSize::Sec5, WhatToShow::Trades, false)
+                    .expect("Realtime bars request failed!");
 
-//         task::spawn(async move {
-//             let contract = Contract::stock(symbol);
+                for bar in subscription {
+                    let message = format!(r#"{{"symbol": "{}", "bar": {:?}}}"#, symbol, bar);
 
-//             match client
-//                 .realtime_bars(&contract, BarSize::Sec5, WhatToShow::Trades, false)
-//                 .await
-//             {
-//                 Ok(mut subscription) => {
-//                     while let Some(bar) = subscription.next().await {
-//                         let message = format!("[IB] 📊 Symbol: {} | Bar Data: {:?}", symbol, bar);
-//                         sender
-//                             .send(message)
-//                             .await
-//                             .expect("Failed to send market data");
-//                     }
-//                 }
-//                 Err(err) => {
-//                     eprintln!("[IB] ❌ Error subscribing to {}: {:?}", symbol, err);
-//                 }
-//             }
-//         });
-//     }
+                    // ✅ Send data via `mpsc::Sender`
+                    if let Err(err) = sender.blocking_send(message) {
+                        eprintln!("[IB] ❌ Failed to send market data: {:?}", err);
+                    }
+                }
+            });
 
-//     // Listen for incoming IB messages (Errors, Order Status, etc.)
-//     while let Some(message) = client.recv().await {
-//         match message {
-//             IncomingMessages::MarketData(data) => {
-//                 println!("[IB] 📈 Market Data: {:?}", data);
-//             }
-//             IncomingMessages::OrderStatus(status) => {
-//                 println!("[IB] 📊 Order Status: {:?}", status);
-//             }
-//             IncomingMessages::Error(error) => {
-//                 eprintln!("[IB] ❌ Error: {:?}", error);
-//             }
-//             _ => {}
-//         }
-//     }
+            handles.push(handle);
+        }
 
-//     Ok(())
-// }
+        for handle in handles {
+            let _ = handle.join();
+        }
+    }
+
+    /// Fetch options chain data (borrows `self`)
+    pub fn fetch_options_chain(&self, symbol: String, sender: mpsc::Sender<String>) {
+        let config = self.config.clone();
+
+        let handle = thread::spawn(move || {
+            let connection_url = format!("{}:{}", config.host, config.port);
+            let client = Client::connect(&connection_url, config.client_id as i32)
+                .expect("Connection to IB Gateway/TWS failed!");
+
+            let contract = Contract::option(&symbol, "202502", 200.0, "C"); // ✅ Correct `option()` method
+            let options_chain = client
+                .contract_details(&contract) // ✅ Corrected method
+                .expect("Failed to fetch options chain");
+
+            for option in options_chain {
+                let message = format!(r#"{{"symbol": "{}", "option": {:?}}}"#, symbol, option);
+
+                // ✅ Send data via `mpsc::Sender`
+                if let Err(err) = sender.blocking_send(message) {
+                    eprintln!("[IB] ❌ Failed to send options data: {:?}", err);
+                }
+            }
+        });
+
+        handle.join().unwrap();
+    }
+}

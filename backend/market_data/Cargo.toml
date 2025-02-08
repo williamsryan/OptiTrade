@@ -19,3 +19,4 @@ memmap2 = { workspace = true }
 lazy_static = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 toml = { workspace = true }
+ibapi = "1.0.15"
