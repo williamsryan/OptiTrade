@@ -53,6 +53,7 @@ impl IBMarketData {
     }
 
     /// Fetch options chain data (borrows `self`)
+    /// TODO: move this to separate 'options' agent?
     pub fn fetch_options_chain(&self, symbol: String, sender: mpsc::Sender<String>) {
         let config = self.config.clone();
 
@@ -61,9 +62,9 @@ impl IBMarketData {
             let client = Client::connect(&connection_url, config.client_id as i32)
                 .expect("Connection to IB Gateway/TWS failed!");
 
-            let contract = Contract::option(&symbol, "202502", 200.0, "C"); // ✅ Correct `option()` method
+            let contract = Contract::option(&symbol, "202502", 200.0, "C"); 
             let options_chain = client
-                .contract_details(&contract) // ✅ Corrected method
+                .contract_details(&contract)
                 .expect("Failed to fetch options chain");
 
             for option in options_chain {
