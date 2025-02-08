@@ -6,10 +6,10 @@ use alpaca_api::stream_alpaca_market_data;
 use backend::shared::kafka_producer::publish_to_kafka;
 use backend::shared::mmap_buffer::write_to_mmap;
 use config::load_config;
-use ib_api::fetch_ib_market_data;
+// use ib_api::fetch_ib_market_data;
 use serde_json::Value;
-use std::sync::Arc;
-use std::thread;
+// use std::sync::Arc;
+// use std::thread;
 use tokio::sync::mpsc;
 
 const KAFKA_TOPIC: &str = "market_data"; // Kafka topic for publishing data
@@ -40,26 +40,26 @@ async fn main() {
                 });
             }
         }
-        "ib" => {
-            println!("[MarketData] 🔵 Using Interactive Brokers API for market data streaming");
+        // "ib" => {
+        //     println!("[MarketData] 🔵 Using Interactive Brokers API for market data streaming");
 
-            let ib_config = Arc::new(config.ib.clone());
-            let mut handles = vec![];
+        //     let ib_config = Arc::new(config.ib.clone());
+        //     let mut handles = vec![];
 
-            for symbol in SYMBOLS {
-                let ib_config = Arc::clone(&ib_config);
-                let handle =
-                    thread::spawn(move || match fetch_ib_market_data(&ib_config, symbol) {
-                        Ok(_) => println!("[IB] ✅ Streaming market data for {}", symbol),
-                        Err(err) => eprintln!("[IB] ❌ Error fetching IB market data: {}", err),
-                    });
-                handles.push(handle);
-            }
+        //     for symbol in SYMBOLS {
+        //         let ib_config = Arc::clone(&ib_config);
+        //         let handle =
+        //             thread::spawn(move || match fetch_ib_market_data(&ib_config, symbol) {
+        //                 Ok(_) => println!("[IB] ✅ Streaming market data for {}", symbol),
+        //                 Err(err) => eprintln!("[IB] ❌ Error fetching IB market data: {}", err),
+        //             });
+        //         handles.push(handle);
+        //     }
 
-            for handle in handles {
-                handle.join().unwrap();
-            }
-        }
+        //     for handle in handles {
+        //         handle.join().unwrap();
+        //     }
+        // }
         _ => {
             eprintln!("[MarketData] ❌ Invalid data provider in config");
         }

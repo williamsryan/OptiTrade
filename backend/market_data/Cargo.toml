@@ -17,4 +17,5 @@ flatbuffers = { workspace = true }
 url = { workspace = true }
 memmap2 = { workspace = true }
 lazy_static = { workspace = true }
-ibapi = "1.0.15"
+reqwest = { workspace = true, features = ["json"] }
+toml = { workspace = true }

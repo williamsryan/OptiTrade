@@ -10,4 +10,4 @@ websocket_url = "wss://stream.data.alpaca.markets/v2/iex"
 [ib]
 host = "127.0.0.1"
 port = 4002        # Use 7497 for TWS, 4002 for IB Gateway
-client_id = 1
+client_id = 100
