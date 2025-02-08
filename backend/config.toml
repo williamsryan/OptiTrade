@@ -1,5 +1,5 @@
 [data_provider]
-use = "alpaca" # Options: "alpaca" or "ib"
+use_provider = "alpaca" # Options: "alpaca" or "ib"
 
 [alpaca]
 api_key = "PKS83YQBEUPZL111E7NJ"
