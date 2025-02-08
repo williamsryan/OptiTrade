@@ -23,13 +23,15 @@
 ```
 OptiTrade/
 ├── backend/                        # Core backend for agents
-│   ├── market_data/                # Market Data Agent (WebSocket ingestion)
+│   ├── market_data/                # Handles real-time options data ingestion
 │   │   ├── src/
-│   │   │   ├── main.rs              # Market Data Agent entry point
-│   │   │   ├── lib.rs               # Handles WebSocket & Kafka publishing
-│   │   │   ├── websocket.rs         # Handles WebSocket connections
-│   │   │   ├── kafka_producer.rs    # Sends messages to Kafka
-│   │   │   ├── data_parser.rs       # Parses incoming market data
+│   │   │   ├── main.rs             # Main entry point (selects provider, ingests data)
+│   │   │   ├── config.rs           # Reads config file (Alpaca or IB)
+│   │   │   ├── alpaca_api.rs       # Fetch options data from Alpaca
+│   │   │   ├── ib_api.rs           # Fetch options data from Interactive Brokers
+│   │   │   ├── kafka_producer.rs   # Publishes data to Kafka
+│   │   │   ├── mmap_buffer.rs      # Writes data to memory-mapped buffer
+│   │   ├── config.toml             # User-configurable file to select provider
 │   │   ├── Cargo.toml
 │   ├── storage_agent/               # Stores market data into TimescaleDB
 │   │   ├── src/

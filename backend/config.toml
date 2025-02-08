@@ -1,0 +1,13 @@
+[data_provider]
+use = "alpaca" # Options: "alpaca" or "ib"
+
+[alpaca]
+api_key = "PKS83YQBEUPZL111E7NJ"
+api_secret = "NDSora4h27DyMzn1vgRElYWr40gkDpkZTrzIXwvh"
+base_url = "https://paper-api.alpaca.markets"
+websocket_url = "wss://stream.data.alpaca.markets/v2/iex"
+
+[ib]
+host = "127.0.0.1"
+port = 4002        # Use 7497 for TWS, 4002 for IB Gateway
+client_id = 1

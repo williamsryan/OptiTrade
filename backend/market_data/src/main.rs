@@ -1,77 +1,86 @@
+mod alpaca_api;
+mod config;
+mod ib_api;
+
+use alpaca_api::stream_alpaca_market_data;
 use backend::shared::kafka_producer::publish_to_kafka;
 use backend::shared::mmap_buffer::write_to_mmap;
-
-use futures_util::{SinkExt, StreamExt};
+use config::load_config;
+use ib_api::fetch_ib_market_data;
 use serde_json::Value;
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use url::Url;
+use std::sync::Arc;
+use std::thread;
+use tokio::sync::mpsc;
 
-const ALPACA_WS_URL: &str = "wss://stream.data.alpaca.markets/v2/iex";
-const API_KEY: &str = "PKS83YQBEUPZL111E7NJ";
-const SECRET_KEY: &str = "NDSora4h27DyMzn1vgRElYWr40gkDpkZTrzIXwvh";
 const KAFKA_TOPIC: &str = "market_data"; // Kafka topic for publishing data
+const SYMBOLS: [&str; 3] = ["AAPL", "TSLA", "NVDA"]; // Modify for dynamic symbols
 
 #[tokio::main]
 async fn main() {
-    // let mmap = get_mmap(); // Use `get_mmap()` directly, no extra wrapping
+    let config = load_config();
+    println!(
+        "[MarketData] ✅ Loaded config. Selected provider: {}",
+        config.data_provider.use_provider
+    );
 
-    let url = Url::parse(ALPACA_WS_URL).expect("Invalid WebSocket URL");
-    let (ws_stream, _) = connect_async(url)
-        .await
-        .expect("Failed to connect to Alpaca WebSocket");
+    let (tx, mut rx) = mpsc::channel::<String>(100);
 
-    let (mut write, mut read) = ws_stream.split();
+    match config.data_provider.use_provider.as_str() {
+        "alpaca" => {
+            println!("[MarketData] 🟢 Using Alpaca WebSocket for real-time market data");
 
-    authenticate_and_subscribe(&mut write).await;
+            for symbol in SYMBOLS {
+                let alpaca_config = config.alpaca.clone();
+                let sender = tx.clone();
+                tokio::spawn(async move {
+                    match stream_alpaca_market_data(&alpaca_config, symbol, sender).await {
+                        Ok(_) => println!("[Alpaca] ✅ Streaming data for {}", symbol),
+                        Err(err) => eprintln!("[Alpaca] ❌ Error: {}", err),
+                    }
+                });
+            }
+        }
+        "ib" => {
+            println!("[MarketData] 🔵 Using Interactive Brokers API for market data streaming");
 
-    println!("[MarketData] ✅ Subscribed to Alpaca market feed.");
+            let ib_config = Arc::new(config.ib.clone());
+            let mut handles = vec![];
 
-    while let Some(msg) = read.next().await {
-        if let Ok(Message::Text(text)) = msg {
-            let text = text.clone();
-            // let mmap = Arc::clone(&mmap);
+            for symbol in SYMBOLS {
+                let ib_config = Arc::clone(&ib_config);
+                let handle =
+                    thread::spawn(move || match fetch_ib_market_data(&ib_config, symbol) {
+                        Ok(_) => println!("[IB] ✅ Streaming market data for {}", symbol),
+                        Err(err) => eprintln!("[IB] ❌ Error fetching IB market data: {}", err),
+                    });
+                handles.push(handle);
+            }
 
-            tokio::spawn(async move {
-                process_market_data(&text).await;
-            });
+            for handle in handles {
+                handle.join().unwrap();
+            }
+        }
+        _ => {
+            eprintln!("[MarketData] ❌ Invalid data provider in config");
         }
     }
-}
 
-async fn authenticate_and_subscribe<S>(write: &mut S)
-where
-    S: SinkExt<Message> + Unpin,
-    <S as futures_util::Sink<Message>>::Error: std::fmt::Debug,
-{
-    let auth_msg = format!(
-        r#"{{"action": "auth", "key": "{}", "secret": "{}"}}"#,
-        API_KEY, SECRET_KEY
-    );
-    if let Err(e) = write.send(Message::Text(auth_msg)).await {
-        eprintln!("[MarketData] ❌ Auth failed: {:?}", e);
-    }
-
-    let subscribe_msg =
-        r#"{"action":"subscribe","trades":["AAPL","TSLA"],"quotes":["AAPL","TSLA"]}"#;
-    if let Err(e) = write.send(Message::Text(subscribe_msg.into())).await {
-        eprintln!("[MarketData] ❌ Subscribe failed: {:?}", e);
+    // ✅ Process incoming WebSocket messages
+    while let Some(text) = rx.recv().await {
+        process_market_data(&text).await;
     }
 }
 
-/// Processes an array of market data and writes it to memory-mapped buffer & Kafka.
+/// Processes incoming market data and writes it to memory-mapped buffer & Kafka.
 async fn process_market_data(text: &str) {
-    if let Ok(json_array) = serde_json::from_str::<Vec<Value>>(text) {
+    if let Ok(json_array) = serde_json::from_str::<Vec<Value>>(&text) {
         for json_msg in json_array {
             let json_str = json_msg.to_string();
 
-            // Write to Shared Memory-Mapped Buffer (Await async function)
-            {
-                // let mmap_guard = mmap.lock().await;
-                write_to_mmap(&json_str).await;
-                // println!("[MarketData] ✅ Data written to mmap.");
-            }
+            // ✅ Write to Shared Memory-Mapped Buffer
+            write_to_mmap(&json_str);
 
-            // Publish full JSON object to Kafka
+            // ✅ Publish full JSON object to Kafka
             publish_to_kafka(KAFKA_TOPIC, &json_str).await;
         }
     } else {
