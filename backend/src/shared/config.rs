@@ -4,6 +4,7 @@ use std::fs;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub data_provider: DataProvider,
+    pub backtest: BacktestConfig,
     pub alpaca: AlpacaConfig,
     pub ib: IbConfig,
 }
@@ -14,10 +15,16 @@ pub struct DataProvider {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct BacktestConfig {
+    pub data_source: String, // "db" or "alpaca"
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct AlpacaConfig {
     pub api_key: String,
     pub api_secret: String,
     pub base_url: String, // Used for REST API calls (trading, historical data)
+    pub historic_url: String,
     pub websocket_url: String, // Used for live market data streaming
 }
 

@@ -1,10 +1,14 @@
 [data_provider]
 use_provider = "alpaca" # Options: "alpaca" or "ib"
 
+[backtest]
+data_source = "alpaca"  # Options: "db", "alpaca"
+
 [alpaca]
 api_key = "PKS83YQBEUPZL111E7NJ"
 api_secret = "NDSora4h27DyMzn1vgRElYWr40gkDpkZTrzIXwvh"
 base_url = "https://paper-api.alpaca.markets"
+historic_url = "https://data.alpaca.markets"
 websocket_url = "wss://stream.data.alpaca.markets/v2/iex"
 
 [ib]

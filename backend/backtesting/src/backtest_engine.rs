@@ -1,10 +1,11 @@
-use backend::shared::config::{MarketData, TradeSignal};
-use backend::shared::data_loader::load_historical_data;
+use backend::shared::config::{load_config, MarketData, TradeSignal};
+use backend::shared::data_loader::{load_historical_data_alpaca, load_historical_data_db};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
 
 pub struct BacktestEngine {
+    historical_data: Vec<MarketData>,
     market_data_stream: mpsc::Receiver<MarketData>,
     portfolio: Portfolio,
 }
@@ -104,34 +105,67 @@ impl Portfolio {
 impl BacktestEngine {
     /// Creates a new backtesting engine, fetching historical market data
     pub async fn new(symbol: &str, start_time: &str, end_time: &str, starting_cash: f64) -> Self {
+        let config = load_config();
+        let data_source = config.backtest.data_source.as_str();
+
         let (tx, rx) = mpsc::channel(100);
 
-        // Fetch historical market data
-        let historical_data = match load_historical_data(symbol, start_time, end_time).await {
-            Ok(data) if !data.is_empty() => data,
+        // Choose historical data source based on config
+        let historical_data = match data_source {
+            "db" => {
+                println!("📥 Loading historical data from TimescaleDB...");
+                load_historical_data_db(symbol, start_time, end_time)
+                    .await
+                    .unwrap_or_else(|_| vec![])
+            }
+            "alpaca" => {
+                println!("📥 Loading historical data from Alpaca API...");
+                load_historical_data_alpaca(symbol, start_time, end_time)
+                    .await
+                    .unwrap_or_else(|_| vec![])
+            }
             _ => {
                 eprintln!(
-                    "Warning: No historical data found for {} from {} to {}",
-                    symbol, start_time, end_time
+                    "⚠️ Unknown data source '{}'. Defaulting to DB.",
+                    data_source
                 );
-                vec![]
+                load_historical_data_db(symbol, start_time, end_time)
+                    .await
+                    .unwrap_or_else(|_| vec![])
             }
         };
 
+        let data_count = historical_data.len();
+        println!("📊 Loaded {} records for backtesting", data_count);
+
         // Spawn a task to simulate real-time market data streaming
-        tokio::spawn(async move {
-            for market_data in historical_data {
-                if tx.send(market_data).await.is_err() {
-                    println!("Backtest Engine: Receiver dropped, stopping data stream.");
-                    break;
+        tokio::spawn({
+            let historical_data = historical_data.clone(); // Clone to move into the async block
+            async move {
+                for market_data in historical_data {
+                    if tx.send(market_data).await.is_err() {
+                        println!("Backtest Engine: Receiver dropped, stopping data stream.");
+                        break;
+                    }
+                    sleep(Duration::from_millis(500)).await;
                 }
-                sleep(Duration::from_millis(500)).await;
             }
         });
 
         Self {
+            historical_data,
             market_data_stream: rx,
             portfolio: Portfolio::new(starting_cash),
+        }
+    }
+
+    /// Returns the number of historical data points available
+    pub async fn get_historical_data_count(&self) -> Option<usize> {
+        let count = self.historical_data.len();
+        if count > 0 {
+            Some(count)
+        } else {
+            None
         }
     }
 
