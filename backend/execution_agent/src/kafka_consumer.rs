@@ -1,22 +1,15 @@
+use backend::shared::config::TradeSignal;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::message::Message;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TradeSignal {
-    pub symbol: String,
-    pub qty: i32,
-    pub side: String,
-}
 
 pub async fn consume_trade_signals() -> mpsc::Receiver<TradeSignal> {
     let (tx, rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
         let consumer: StreamConsumer = ClientConfig::new()
-            .set("group.id", "opti_trade_group")
+            .set("group.id", "execution_agent")
             .set("bootstrap.servers", "localhost:9092")
             .set("enable.auto.commit", "true")
             .create()

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,6 +26,21 @@ pub struct IbConfig {
     pub host: String,
     pub port: u16,
     pub client_id: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TradeSignal {
+    pub symbol: String,
+    pub qty: i32,
+    pub side: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MarketData {
+    pub symbol: String,
+    pub price: f64,
+    pub moving_average_50: f64,
+    pub moving_average_200: f64,
 }
 
 /// Reads `config.toml` and loads provider configuration
