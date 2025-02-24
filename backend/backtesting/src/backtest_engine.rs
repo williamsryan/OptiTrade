@@ -1,4 +1,5 @@
 use backend::shared::config::MarketData;
+use backend::shared::data_loader::load_historical_data;
 use tokio::sync::mpsc;
 
 pub struct BacktestEngine {
@@ -6,11 +7,15 @@ pub struct BacktestEngine {
 }
 
 impl BacktestEngine {
-    pub fn new(config: &backend::shared::config::Config) -> Self {
+    pub async fn new(symbol: &str, start_time: &str, end_time: &str) -> Self {
         let (tx, rx) = mpsc::channel(100);
+
+        let historical_data = load_historical_data(symbol, start_time, end_time)
+            .await
+            .unwrap_or_else(|_| vec![]);
+
         tokio::spawn(async move {
-            // Simulate fetching historical market data
-            for market_data in backend::shared::market_data::load_historical_data() {
+            for market_data in historical_data {
                 if tx.send(market_data).await.is_err() {
                     break;
                 }

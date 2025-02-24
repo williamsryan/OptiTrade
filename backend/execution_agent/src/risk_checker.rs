@@ -1,4 +1,4 @@
-use crate::kafka_consumer::TradeSignal;
+use backend::shared::config::TradeSignal;
 
 pub fn validate_trade(trade_signal: &TradeSignal) -> bool {
     // Example rule: Prevent trades over 1000 shares
