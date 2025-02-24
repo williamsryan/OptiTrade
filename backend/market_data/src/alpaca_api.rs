@@ -1,4 +1,4 @@
-use crate::config::AlpacaConfig;
+use backend::shared::config::AlpacaConfig;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
 use serde_json::Value;

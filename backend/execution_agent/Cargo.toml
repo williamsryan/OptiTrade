@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+backend = { path = ".." }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rdkafka = { workspace = true }
+url = { workspace = true }
+lazy_static = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+toml = { workspace = true }

@@ -20,3 +20,4 @@ flatbuffers = { workspace = true }
 url = { workspace = true }
 memmap2 = { workspace = true }
 lazy_static = { workspace = true }
+toml = { workspace = true }

@@ -1,4 +1,4 @@
-use crate::config::IbConfig;
+use backend::shared::config::IbConfig;
 use ibapi::contracts::Contract;
 use ibapi::market_data::realtime::{BarSize, WhatToShow};
 use ibapi::client::Client;

@@ -1,11 +1,10 @@
 mod alpaca_api;
-mod config;
 mod ib_api;
 
 use alpaca_api::stream_alpaca_market_data;
+use backend::shared::config::load_config;
 use backend::shared::kafka_producer::publish_to_kafka;
 use backend::shared::mmap_buffer::write_to_mmap;
-use config::load_config;
 use ib_api::IBMarketData;
 use serde_json::Value;
 use std::sync::Arc;
@@ -13,7 +12,7 @@ use std::thread;
 use tokio::sync::mpsc;
 
 const KAFKA_TOPIC: &str = "market_data"; // Kafka topic for publishing data
-const SYMBOLS: [&str; 3] = ["AAPL", "TSLA", "NVDA"]; 
+const SYMBOLS: [&str; 3] = ["AAPL", "TSLA", "NVDA"];
 
 #[tokio::main]
 async fn main() {
@@ -46,7 +45,10 @@ async fn main() {
             let ib_market_data = Arc::new(IBMarketData::new(config.ib.clone()));
 
             // ✅ Stream Market Data
-            let symbols = SYMBOLS.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+            let symbols = SYMBOLS
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>();
             let ib_clone = Arc::clone(&ib_market_data);
             let tx_clone = tx.clone();
             thread::spawn(move || {
